@@ -23,6 +23,7 @@ A cross-platform desktop client for the jailbroken New Bing AI (Sydney ver.) bui
 - Display the rich or plain text of the chat context, supporting LaTeX formulas, tables, codes, etc.
 - Chat with webpages you browse.
 - Chat with files you upload (including pdf, docx, pptx, xlsx, and other plain text files / code files).
+- Youtube videos summarizing.
 - GPT-4 with vision that supports image search.
 - Generate images using the latest DALL·E 3 model.
 - Generate music audio and video using Bing's Suno model.
