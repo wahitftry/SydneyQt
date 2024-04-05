@@ -45,7 +45,7 @@ func Ternary[T any](expression bool, trueResult T, falseResult T) T {
 }
 func MakeHTTPClient(proxy string, timeout time.Duration) (*http.Client, *req.Client, error) {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
-	reqClient := req.C().SetProxyURL(proxy).ImpersonateChrome()
+	reqClient := req.C().ImpersonateChrome()
 	if proxy != "" { // user filled proxy
 		proxyURL, err := url.Parse(proxy)
 		if err != nil {
