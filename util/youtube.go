@@ -190,7 +190,7 @@ type YtTranscript struct {
 	Texts   []YtTranscriptText `xml:"text"`
 }
 type YtTranscriptText struct {
-	Start float64 `xml:"start,attr"`
-	Dur   float64 `xml:"dur,attr"`
-	Value string  `xml:",chardata"`
+	Start float64 `xml:"start,attr" json:"start"`
+	Dur   float64 `xml:"dur,attr" json:"dur"`
+	Value string  `xml:",chardata" json:"value"`
 }
