@@ -8,6 +8,7 @@ import (
 	"github.com/tidwall/gjson"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -20,13 +21,27 @@ type Youtube struct {
 var ErrNoYtCaptions = errors.New("cannot find youtube captions")
 
 func NewYoutube(url string, proxy string) (*Youtube, error) {
-	arr := regexp.MustCompile("v=([^&]+)").FindStringSubmatch(url)
-	if len(arr) == 0 {
-		return nil, errors.New("invalid youtube video url: " + url)
-	}
 	_, client, err := MakeHTTPClient(proxy, 15*time.Second)
 	if err != nil {
 		return nil, err
+	}
+	client.SetRedirectPolicy(req.NoRedirectPolicy())
+	if strings.HasPrefix(url, "https://youtu.be") {
+		resp, err := client.R().Head(url)
+		if err != nil {
+			return nil, err
+		}
+		if resp.IsErrorState() {
+			return nil, errors.New("cannot head " + url + ", status: " + strconv.Itoa(resp.GetStatusCode()))
+		}
+		url = resp.GetHeader("location")
+	}
+	if !strings.HasPrefix(url, "https://www.youtube.com") {
+		return nil, errors.New("not a valid youtube link: " + url)
+	}
+	arr := regexp.MustCompile("v=([^&]+)").FindStringSubmatch(url)
+	if len(arr) == 0 {
+		return nil, errors.New("invalid youtube video url: " + url)
 	}
 	resp, err := client.R().Get("https://www.youtube.com/watch?v=" + arr[1])
 	if err != nil {
