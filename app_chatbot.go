@@ -188,7 +188,8 @@ func (a *App) askSydney(options AskOptions) {
 					receivedBingSearchDisabledLoader = true
 					break
 				}
-				if msg.Text == "Generating answers for you..." && receivedBingSearchDisabledLoader {
+				if (msg.Text == "Generating answers for you..." || msg.Text == "正在为你生成答案...") &&
+					receivedBingSearchDisabledLoader {
 					receivedBingSearchDisabledLoader = false
 					break
 				}
