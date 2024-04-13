@@ -213,6 +213,7 @@ function scrollChatContextToBottom() {
 
 function fixContextLineBreak() {
   if (currentWorkspace.value.context.trim() == '') {
+    currentWorkspace.value.context = ''
     return
   }
   if (!currentWorkspace.value.context.endsWith("\n\n")) {
