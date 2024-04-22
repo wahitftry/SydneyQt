@@ -246,8 +246,8 @@ func main() {
 			Cookies:           cookies,
 			Proxy:             proxy,
 			ConversationStyle: conversationStyle,
-			Locale:            "en-US",
-			NoSearch:          request.ToolChoice == nil,
+			Locale:            "id-ID",
+			NoSearch:          false,
 			GPT4Turbo:         true,
 		})
 
