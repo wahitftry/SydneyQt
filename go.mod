@@ -5,7 +5,6 @@ go 1.21
 toolchain go1.21.1
 
 require (
-	github.com/PuerkitoBio/goquery v1.9.1
 	github.com/dlclark/regexp2 v1.11.0
 	github.com/flytam/filenamify v1.2.0
 	github.com/go-chi/chi/v5 v5.0.12
@@ -34,7 +33,6 @@ require (
 require (
 	github.com/akavel/rsrc v0.10.2 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
-	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/bep/debounce v1.2.1 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect

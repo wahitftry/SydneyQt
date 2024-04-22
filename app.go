@@ -8,11 +8,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
 	"github.com/flytam/filenamify"
 	goversion "github.com/hashicorp/go-version"
-	"github.com/life4/genesis/slices"
-	"github.com/microcosm-cc/bluemonday"
 	"github.com/pkoukk/tiktoken-go"
 	"github.com/samber/lo"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -210,38 +207,19 @@ func (a *App) UploadDocument() (UploadSydneyDocumentResult, error) {
 	}, nil
 }
 
-type FetchWebpageResult struct {
-	Title   string `json:"title"`
-	Content string `json:"content"`
-}
-
-func (a *App) FetchWebpage(url string) (FetchWebpageResult, error) {
-	empty := FetchWebpageResult{}
+func (a *App) FetchWebpage(url string) (string, error) {
 	_, client, err := util.MakeHTTPClient(a.settings.config.Proxy, 15*time.Second)
 	if err != nil {
-		return empty, err
+		return "", err
 	}
-	resp, err := client.R().Get(url)
+	resp, err := client.R().Get("https://r.jina.ai/" + url)
 	if err != nil {
-		return empty, err
+		return "", err
 	}
-	content := resp.String()
-	title := ""
-	if doc, err := goquery.NewDocumentFromReader(strings.NewReader(content)); err == nil {
-		title = doc.Find("title").Text()
-		doc.Find("script").Remove()
-		doc.Find("style").Remove()
-		text := bluemonday.StripTagsPolicy().Sanitize(doc.Text())
-		text = regexp.MustCompile(" {2,}").ReplaceAllString(text, "  ")
-		lines := slices.Filter(strings.Split(text, "\n"), func(s string) bool {
-			return strings.TrimSpace(s) != ""
-		})
-		content = strings.Join(lines, "\n")
+	if resp.IsErrorState() {
+		return "", errors.New("error fetching url: " + resp.GetStatus() + ": " + resp.String())
 	}
-	return FetchWebpageResult{
-		Title:   title,
-		Content: content,
-	}, nil
+	return resp.String(), nil
 }
 
 func (a *App) GetUser() (string, error) {

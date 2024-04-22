@@ -20,13 +20,7 @@ function fetchWebpage() {
   webpageFetching.value = true
   webpageFetchError.value = ''
   FetchWebpage(webpageFetchURL.value).then(res => {
-    let text = '[user](#webpage_context)\n'
-    if (res.title === '') {
-      text += JSON.stringify(res.content)
-    } else {
-      text += JSON.stringify(res)
-    }
-    text += '\n\n'
+    let text = '[user](#webpage_context)\n' + res + '\n\n'
     emit('appendBlockToCurrentWorkspace', text)
     webpageFetching.value = false
     webpageFetchDialog.value = false
