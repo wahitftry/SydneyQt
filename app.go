@@ -13,6 +13,7 @@ import (
 	"github.com/pkoukk/tiktoken-go"
 	"github.com/samber/lo"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -172,6 +173,25 @@ func (a *App) SelectUploadFile() (string, error) {
 		return "", err
 	}
 	return file, nil
+}
+func (a *App) SaveTempFileToUploadFromBase64(ext, rawBase64 string) (string, error) {
+	if !lo.Contains(sydney.BingAllowedFileExtensions, ext) {
+		return "", errors.New("file extension " + ext + " is not allowed")
+	}
+	v, err := base64.StdEncoding.DecodeString(rawBase64)
+	if err != nil {
+		return "", err
+	}
+	f, err := os.CreateTemp("", "*."+ext)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	_, err = io.Copy(f, bytes.NewReader(v))
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(os.TempDir(), f.Name()), nil
 }
 
 type UploadSydneyDocumentResult struct {

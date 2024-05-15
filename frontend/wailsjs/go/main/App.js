@@ -58,6 +58,10 @@ export function SaveRemoteJPEGImage(arg1) {
   return window['go']['main']['App']['SaveRemoteJPEGImage'](arg1);
 }
 
+export function SaveTempFileToUploadFromBase64(arg1, arg2) {
+  return window['go']['main']['App']['SaveTempFileToUploadFromBase64'](arg1, arg2);
+}
+
 export function SelectUploadFile() {
   return window['go']['main']['App']['SelectUploadFile']();
 }

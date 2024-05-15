@@ -9,6 +9,7 @@ import {
   GenerateImage,
   GenerateMusic,
   GetConciseAnswer,
+  SaveTempFileToUploadFromBase64,
   UploadSydneyImageFromBase64
 } from "../../wailsjs/go/main/App"
 import {AskTypeOpenAI, AskTypeSydney} from "../constants"
@@ -297,14 +298,23 @@ async function pasteToUserInput(event: ClipboardEvent) {
   if (!rawBase64) {
     return
   }
-  imageUploadButtonLoading.value = true
-  UploadSydneyImageFromBase64(rawBase64).then(res => {
-    uploadedImage.value = res
-  }).catch(err => {
-    swal.error(err)
-  }).finally(() => {
-    imageUploadButtonLoading.value = false
-  })
+  let ext = file.name.split('.')[file.name.split('.').length - 1]
+  if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) {
+    imageUploadButtonLoading.value = true
+    UploadSydneyImageFromBase64(rawBase64).then(res => {
+      uploadedImage.value = res
+    }).catch(err => {
+      swal.error(err)
+    }).finally(() => {
+      imageUploadButtonLoading.value = false
+    })
+  } else {
+    SaveTempFileToUploadFromBase64(ext, rawBase64).then(res => {
+      selectedUploadFile.value = res
+    }).catch(err => {
+      swal.error(err)
+    })
+  }
 }
 
 function stopAsking() {
