@@ -39,3 +39,5 @@ export function ShareWorkspace(arg1:number):Promise<void>;
 export function UploadDocument():Promise<main.UploadSydneyDocumentResult>;
 
 export function UploadSydneyImage():Promise<main.UploadSydneyImageResult>;
+
+export function UploadSydneyImageFromBase64(arg1:string):Promise<main.UploadSydneyImageResult>;

@@ -11,6 +11,7 @@ let globalProps = defineProps<{
   isAsking: boolean,
   modelValue: any | undefined,
   type: string,// file, image
+  loading?: boolean | undefined,
 }>()
 let emit = defineEmits<{
   (e: 'update:modelValue', val: any | undefined): void
@@ -87,7 +88,7 @@ function uploadImage() {
       <user-input-tool-button @click="upload" :bindings="modelValue?props:undefined"
                               :tooltip="'Select your '+type+' to upload'"
                               :icon="typeIconMap[type]" :color="modelValue?'green':undefined"
-                              :disabled="isAsking" :loading="uploading"></user-input-tool-button>
+                              :disabled="isAsking" :loading="uploading || loading"></user-input-tool-button>
     </v-hover>
   </div>
 </template>

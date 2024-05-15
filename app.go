@@ -100,6 +100,28 @@ type UploadSydneyImageResult struct {
 	Canceled  bool   `json:"canceled"`
 }
 
+func (a *App) UploadSydneyImageFromBase64(rawBase64 string) (UploadSydneyImageResult, error) {
+	v, err := base64.StdEncoding.DecodeString(rawBase64)
+	if err != nil {
+		return UploadSydneyImageResult{}, err
+	}
+	jpgData, err := util.ConvertImageToJpg(v)
+	if err != nil {
+		return UploadSydneyImageResult{}, err
+	}
+	sydneyIns, err := a.createSydney()
+	if err != nil {
+		return UploadSydneyImageResult{}, err
+	}
+	url, err := sydneyIns.UploadImage(jpgData)
+	if err != nil {
+		return UploadSydneyImageResult{}, err
+	}
+	return UploadSydneyImageResult{
+		Base64URL: "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(jpgData),
+		BingURL:   url,
+	}, err
+}
 func (a *App) UploadSydneyImage() (UploadSydneyImageResult, error) {
 	file, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
 		Title: "Open an image to upload",

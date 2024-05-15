@@ -102,3 +102,10 @@ export function unescapeHtml(unsafe: string) {
         .replaceAll('&#039;', "'")
         .replaceAll('&#39;', "'")
 }
+
+export const fileToBase64URL = (f: File) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(f)
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = reject
+})

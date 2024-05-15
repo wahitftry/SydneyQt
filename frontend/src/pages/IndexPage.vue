@@ -2,8 +2,15 @@
 import {computed, onMounted, onUnmounted, ref, watch} from "vue"
 import {main, sydney} from "../../wailsjs/go/models"
 import {EventsEmit, EventsOff, EventsOn} from "../../wailsjs/runtime"
-import {fromChatMessages, generateRandomName, shadeColor, swal, toChatMessages} from "../helper"
-import {AskAI, CountToken, GenerateImage, GenerateMusic, GetConciseAnswer} from "../../wailsjs/go/main/App"
+import {fileToBase64URL, fromChatMessages, generateRandomName, shadeColor, swal, toChatMessages} from "../helper"
+import {
+  AskAI,
+  CountToken,
+  GenerateImage,
+  GenerateMusic,
+  GetConciseAnswer,
+  UploadSydneyImageFromBase64
+} from "../../wailsjs/go/main/App"
 import {AskTypeOpenAI, AskTypeSydney} from "../constants"
 import Scaffold from "../components/Scaffold.vue"
 import {useSettings} from "../composables"
@@ -276,6 +283,28 @@ function applyQuickResponse(text: string) {
     currentWorkspace.value.input += '\n'
   }
   currentWorkspace.value.input += text
+}
+
+let imageUploadButtonLoading = ref(false)
+
+async function pasteToUserInput(event: ClipboardEvent) {
+  let file = event.clipboardData?.files?.[0]
+  if (!file) {
+    return
+  }
+  let url = await fileToBase64URL(file)
+  let rawBase64 = /base64,(.*)/.exec(url)?.[1] ?? ''
+  if (!rawBase64) {
+    return
+  }
+  imageUploadButtonLoading.value = true
+  UploadSydneyImageFromBase64(rawBase64).then(res => {
+    uploadedImage.value = res
+  }).catch(err => {
+    swal.error(err)
+  }).finally(() => {
+    imageUploadButtonLoading.value = false
+  })
 }
 
 function stopAsking() {
@@ -615,7 +644,8 @@ function generateTitle() {
         <div class="my-1 d-flex">
           <p class="font-weight-bold">Follow-up User Input:</p>
           <v-spacer></v-spacer>
-          <upload-panel-button :is-asking="isAsking" v-model="uploadedImage" type="image"></upload-panel-button>
+          <upload-panel-button :loading="imageUploadButtonLoading" :is-asking="isAsking" v-model="uploadedImage"
+                               type="image"></upload-panel-button>
           <upload-panel-button :is-asking="isAsking" v-model="selectedUploadFile" type="file"></upload-panel-button>
           <upload-document-button :is-asking="isAsking"
                                   @append-block-to-current-workspace="appendBlockToCurrentWorkspace"
@@ -657,7 +687,7 @@ function generateTitle() {
         </div>
         <div :style="{height:config.stretch_factor+'vh'}" class="flex-shrink-0">
           <textarea :style="customFontStyle" id="user-input" class="input-textarea"
-                    v-model="currentWorkspace.input"></textarea>
+                    v-model="currentWorkspace.input" @paste="pasteToUserInput"></textarea>
         </div>
         <div class="d-flex text-caption">
           <p class="overflow-hidden text-no-wrap">{{ statusBarText }}</p>

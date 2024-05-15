@@ -73,3 +73,7 @@ export function UploadDocument() {
 export function UploadSydneyImage() {
   return window['go']['main']['App']['UploadSydneyImage']();
 }
+
+export function UploadSydneyImageFromBase64(arg1) {
+  return window['go']['main']['App']['UploadSydneyImageFromBase64'](arg1);
+}
