@@ -69,7 +69,7 @@ watch(currentWorkspace, async () => {
   chatContextTokenCount.value = await CountToken(currentWorkspace.value.context)
   userInputTokenCount.value = await CountToken(currentWorkspace.value.input)
   config.value.current_workspace_id = currentWorkspace.value.id
-  if (!currentWorkspace.value.model && currentWorkspace.value.backend != 'Sydney') {
+  if (!currentWorkspace.value.model && currentWorkspace.value.backend !== 'Sydney') {
     let backend = config.value.open_ai_backends.find(v => v.name === currentWorkspace.value.backend)
     if (backend) {
       currentWorkspace.value.model = backend.openai_short_model.split(',')[0]
