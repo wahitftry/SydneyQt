@@ -493,7 +493,7 @@ function generateTitle() {
       </v-btn>
     </template>
     <template #right-top-prepend>
-      <user-status-button></user-status-button>
+      <user-status-button v-if="!config.hide_user_status_button"></user-status-button>
     </template>
     <template #default>
       <workspace-nav v-if="!loading" :is-asking="isAsking" v-model="navDrawer"

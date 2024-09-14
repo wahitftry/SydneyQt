@@ -240,6 +240,7 @@ export namespace main {
 	    disable_no_search_loader: boolean;
 	    bypass_server: string;
 	    disable_summary_title_generation: boolean;
+	    hide_user_status_button: boolean;
 	    migration: Migration;
 	
 	    static createFrom(source: any = {}) {
@@ -272,6 +273,7 @@ export namespace main {
 	        this.disable_no_search_loader = source["disable_no_search_loader"];
 	        this.bypass_server = source["bypass_server"];
 	        this.disable_summary_title_generation = source["disable_summary_title_generation"];
+	        this.hide_user_status_button = source["hide_user_status_button"];
 	        this.migration = this.convertValues(source["migration"], Migration);
 	    }
 	
