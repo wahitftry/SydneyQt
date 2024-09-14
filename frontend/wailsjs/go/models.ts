@@ -7,6 +7,7 @@ export namespace main {
 	    prompt: string;
 	    image_url: string;
 	    upload_file_path: string;
+	    model: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new AskOptions(source);
@@ -20,6 +21,7 @@ export namespace main {
 	        this.prompt = source["prompt"];
 	        this.image_url = source["image_url"];
 	        this.upload_file_path = source["upload_file_path"];
+	        this.model = source["model"];
 	    }
 	}
 	export class ChatFinishResult {
@@ -155,6 +157,7 @@ export namespace main {
 	    persistent_input: boolean;
 	    plugins: string[];
 	    data_references: DataReference[];
+	    model: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Workspace(source);
@@ -177,6 +180,7 @@ export namespace main {
 	        this.persistent_input = source["persistent_input"];
 	        this.plugins = source["plugins"];
 	        this.data_references = this.convertValues(source["data_references"], DataReference);
+	        this.model = source["model"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

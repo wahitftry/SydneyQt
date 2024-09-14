@@ -31,6 +31,7 @@ type Workspace struct {
 	PersistentInput   bool            `json:"persistent_input"`
 	Plugins           []string        `json:"plugins"`
 	DataReferences    []DataReference `json:"data_references"`
+	Model             string          `json:"model"`
 }
 type DataReference struct {
 	UUID string `json:"uuid"`

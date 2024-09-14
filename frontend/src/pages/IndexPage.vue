@@ -59,6 +59,7 @@ let currentWorkspace = ref(<Workspace>{
   use_classic: false,
   gpt_4_turbo: false,
   persistent_input: false,
+  model: '',
 })
 
 let chatContextTokenCount = ref(0)
@@ -68,6 +69,12 @@ watch(currentWorkspace, async () => {
   chatContextTokenCount.value = await CountToken(currentWorkspace.value.context)
   userInputTokenCount.value = await CountToken(currentWorkspace.value.input)
   config.value.current_workspace_id = currentWorkspace.value.id
+  if (!currentWorkspace.value.model && currentWorkspace.value.backend != 'Sydney') {
+    let backend = config.value.open_ai_backends.find(v => v.name === currentWorkspace.value.backend)
+    if (backend) {
+      currentWorkspace.value.model = backend.openai_short_model.split(',')[0]
+    }
+  }
 }, {deep: true})
 let statusTokenCountText = computed(() => {
   return 'Chat Context: ' + chatContextTokenCount.value + ' tokens; User Input: ' + userInputTokenCount.value + ' tokens'
@@ -272,6 +279,7 @@ async function startAsking(args: StartAskingArgs = {}) {
   askOptions.openai_backend = currentWorkspace.value.backend
   askOptions.image_url = uploadedImage.value?.bing_url ?? ''
   askOptions.upload_file_path = selectedUploadFile.value ?? ''
+  askOptions.model = currentWorkspace.value.model ?? ''
   await AskAI(askOptions)
 }
 
@@ -491,6 +499,7 @@ function generateTitle() {
       <workspace-nav v-if="!loading" :is-asking="isAsking" v-model="navDrawer"
                      v-model:current-workspace="currentWorkspace"
                      v-model:workspaces="config.workspaces" :presets="config.presets" @on-reset="onReset"
+                     :open_ai_backends="config.open_ai_backends"
                      @update:suggested-responses="arr => suggestedResponses=arr"
                      @scroll-chat-context-to-bottom="scrollChatContextToBottom"></workspace-nav>
       <div class="d-flex flex-column fill-height" v-if="!loading">
@@ -501,9 +510,13 @@ function generateTitle() {
             <v-select v-model="currentWorkspace.backend" :items="backendList" color="primary" label="Backend"
                       density="compact"
                       class="mx-2"></v-select>
-            <v-select v-model="currentWorkspace.conversation_style" :disabled="currentWorkspace.backend!=='Sydney'"
+            <v-select v-model="currentWorkspace.conversation_style" v-if="currentWorkspace.backend==='Sydney'"
                       :items="modeList" color="primary" label="Mode"
                       density="compact"
+                      class="mx-2"></v-select>
+            <v-select v-model="currentWorkspace.model" v-else
+                      :items="config.open_ai_backends.find(v=>v.name===currentWorkspace.backend)?.openai_short_model.split(',') ?? []"
+                      color="primary" label="Model" density="compact"
                       class="mx-2"></v-select>
             <v-select :model-value="currentWorkspace.preset" @update:model-value="onPresetChange"
                       :items="config.presets.map(v=>v.name)" color="primary"

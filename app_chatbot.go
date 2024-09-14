@@ -31,6 +31,7 @@ type AskOptions struct {
 	Prompt         string  `json:"prompt"`
 	ImageURL       string  `json:"image_url"`
 	UploadFilePath string  `json:"upload_file_path"`
+	Model          string  `json:"model"` // for openai models
 }
 
 const (
@@ -266,8 +267,17 @@ func (a *App) askOpenAI(options AskOptions) {
 			}},
 		})
 	}
+	models := strings.Split(backend.OpenaiShortModel, ",")
+	if options.Model == "" {
+		options.Model = models[0]
+	}
+	if !slices.Contains(models, options.Model) {
+		handleErr(errors.New("model " + options.Model + " is not in the model list of the corresponding backend"))
+		return
+	}
+	slog.Info("Ask OpenAI with model: " + options.Model)
 	stream, err := client.CreateChatCompletionStream(stopCtx, openai.ChatCompletionRequest{
-		Model:            backend.OpenaiShortModel,
+		Model:            options.Model,
 		Messages:         messages,
 		Temperature:      backend.OpenaiTemperature,
 		FrequencyPenalty: backend.FrequencyPenalty,

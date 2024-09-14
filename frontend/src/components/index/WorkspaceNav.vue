@@ -2,7 +2,7 @@
 
 import Conversation from "./Conversation.vue"
 import SearchWorkspaceButton from "./SearchWorkspaceButton.vue"
-import {main, sydney} from "../../../wailsjs/go/models"
+import {main} from "../../../wailsjs/go/models"
 import {generateRandomName, swal} from "../../helper"
 import dayjs from "dayjs"
 import {computed, ref} from "vue"
@@ -10,6 +10,7 @@ import {ExportWorkspace, ShareWorkspace} from "../../../wailsjs/go/main/App"
 import Workspace = main.Workspace
 import Preset = main.Preset
 import DataReference = main.DataReference
+import OpenAIBackend = main.OpenAIBackend
 
 let props = defineProps<{
   modelValue: boolean,
@@ -17,6 +18,7 @@ let props = defineProps<{
   currentWorkspace: Workspace,
   isAsking: boolean,
   presets: Preset[],
+  open_ai_backends: OpenAIBackend[],
 }>()
 let sortedWorkspaces = computed(() => {
   return props.workspaces.sort((a, b) => {
@@ -85,6 +87,7 @@ function addWorkspace() {
     gpt_4_turbo: props.currentWorkspace.gpt_4_turbo,
     persistent_input: props.currentWorkspace.persistent_input,
     plugins: props.currentWorkspace.plugins,
+    model: props.currentWorkspace.model
   }
   props.workspaces.push(workspace)
   switchWorkspace(workspace)
@@ -96,6 +99,12 @@ function switchWorkspace(workspace: Workspace) {
   }
   if (!workspace.data_references) {
     workspace.data_references = []
+  }
+  if (!workspace.model && workspace.backend != 'Sydney') {
+    let backend = props.open_ai_backends.find(v => v.name === workspace.backend)
+    if (backend) {
+      workspace.model = backend.openai_short_model.split(',')[0]
+    }
   }
   emit('update:currentWorkspace', workspace)
   emit('update:suggestedResponses', [])
