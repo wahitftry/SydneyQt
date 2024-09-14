@@ -293,6 +293,11 @@ func (a *App) askOpenAI(options AskOptions) {
 	fullMessage := ""
 	replied := false
 	for {
+		select {
+		case <-stopCtx.Done():
+			return
+		default:
+		}
 		response, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
 			slog.Info("openai chat completed")
