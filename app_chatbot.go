@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sydneyqt/sydney"
 	"sydneyqt/util"
+	"time"
 )
 
 const (
@@ -216,17 +217,18 @@ func (a *App) askOpenAI(options AskOptions) {
 		ErrType: "",
 		ErrMsg:  "",
 	}
+	chatFinish := func() {
+		slog.Info("invoke EventChatFinish", "result", chatFinishResult)
+		runtime.EventsEmit(a.ctx, EventChatFinish, chatFinishResult)
+	}
 	handleErr := func(err error) {
 		chatFinishResult = ChatFinishResult{
 			Success: false,
 			ErrType: ChatFinishResultErrTypeOthers,
 			ErrMsg:  err.Error(),
 		}
+		chatFinish()
 	}
-	defer func() {
-		slog.Info("invoke EventChatFinish", "result", chatFinishResult)
-		runtime.EventsEmit(a.ctx, EventChatFinish, chatFinishResult)
-	}()
 	stopCtx, cancel := context.WithCancel(context.Background())
 	runtime.EventsOn(a.ctx, EventChatStop, func(optionalData ...interface{}) {
 		slog.Info("Received EventChatStop")
@@ -288,10 +290,30 @@ func (a *App) askOpenAI(options AskOptions) {
 		handleErr(err)
 		return
 	}
-	runtime.EventsEmit(a.ctx, EventConversationCreated)
 	defer stream.Close()
-	fullMessage := ""
+	runtime.EventsEmit(a.ctx, EventConversationCreated)
+	chatAppendBuffChan := make(chan string, 128)
+	defer close(chatAppendBuffChan)
+	fullMessage := bytes.Buffer{}
 	replied := false
+	go func() {
+		lastFlushTime := time.Now()
+		textBuf := bytes.Buffer{}
+		flush := func() {
+			runtime.EventsEmit(a.ctx, EventChatAppend, textBuf.String())
+			runtime.EventsEmit(a.ctx, EventChatToken, a.CountToken(fullMessage.String()))
+			lastFlushTime = time.Now()
+			textBuf.Reset()
+		}
+		for text := range chatAppendBuffChan {
+			textBuf.WriteString(text)
+			if time.Since(lastFlushTime) >= 200*time.Millisecond {
+				flush()
+			}
+		}
+		flush()
+		chatFinish()
+	}()
 	for {
 		select {
 		case <-stopCtx.Done():
@@ -315,13 +337,12 @@ func (a *App) askOpenAI(options AskOptions) {
 			continue
 		}
 		textToAppend := response.Choices[0].Delta.Content
-		fullMessage += textToAppend
-		runtime.EventsEmit(a.ctx, EventChatToken, a.CountToken(fullMessage))
+		fullMessage.WriteString(textToAppend)
 		if !replied {
 			textToAppend = "[assistant](#message)\n" + textToAppend
 			replied = true
 		}
-		runtime.EventsEmit(a.ctx, EventChatAppend, textToAppend)
+		chatAppendBuffChan <- textToAppend
 	}
 }
 func (a *App) AskAI(options AskOptions) {
