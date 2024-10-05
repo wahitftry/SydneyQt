@@ -31,6 +31,7 @@ type Workspace struct {
 	PersistentInput   bool            `json:"persistent_input"`
 	Plugins           []string        `json:"plugins"`
 	DataReferences    []DataReference `json:"data_references"`
+	Model             string          `json:"model"`
 }
 type DataReference struct {
 	UUID string `json:"uuid"`
@@ -74,6 +75,7 @@ type Config struct {
 	DisableNoSearchLoader         bool            `json:"disable_no_search_loader"`
 	BypassServer                  string          `json:"bypass_server"`
 	DisableSummaryTitleGeneration bool            `json:"disable_summary_title_generation"`
+	HideUserStatusButton          bool            `json:"hide_user_status_button"`
 
 	Migration Migration `json:"migration"`
 }

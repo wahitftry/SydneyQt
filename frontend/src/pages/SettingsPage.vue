@@ -132,6 +132,13 @@ function onRevokeReplyCountChanged(v: string) {
                 </template>
               </v-tooltip>
               <theme-text-field v-model:theme-color="config.theme_color"></theme-text-field>
+              <v-tooltip text="User Status Button will show your login status of bing.com on the top bar"
+                         location="bottom">
+                <template #activator="{props}">
+                  <v-switch v-bind="props" color="primary" label="Hide User Status Button"
+                            v-model="config.hide_user_status_button"></v-switch>
+                </template>
+              </v-tooltip>
             </v-card-text>
           </v-card>
           <v-card title="Accessibility" class="my-3">

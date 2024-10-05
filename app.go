@@ -13,6 +13,7 @@ import (
 	"github.com/pkoukk/tiktoken-go"
 	"github.com/samber/lo"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -100,6 +101,28 @@ type UploadSydneyImageResult struct {
 	Canceled  bool   `json:"canceled"`
 }
 
+func (a *App) UploadSydneyImageFromBase64(rawBase64 string) (UploadSydneyImageResult, error) {
+	v, err := base64.StdEncoding.DecodeString(rawBase64)
+	if err != nil {
+		return UploadSydneyImageResult{}, err
+	}
+	jpgData, err := util.ConvertImageToJpg(v)
+	if err != nil {
+		return UploadSydneyImageResult{}, err
+	}
+	sydneyIns, err := a.createSydney()
+	if err != nil {
+		return UploadSydneyImageResult{}, err
+	}
+	url, err := sydneyIns.UploadImage(jpgData)
+	if err != nil {
+		return UploadSydneyImageResult{}, err
+	}
+	return UploadSydneyImageResult{
+		Base64URL: "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(jpgData),
+		BingURL:   url,
+	}, err
+}
 func (a *App) UploadSydneyImage() (UploadSydneyImageResult, error) {
 	file, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
 		Title: "Open an image to upload",
@@ -150,6 +173,25 @@ func (a *App) SelectUploadFile() (string, error) {
 		return "", err
 	}
 	return file, nil
+}
+func (a *App) SaveTempFileToUploadFromBase64(ext, rawBase64 string) (string, error) {
+	if !lo.Contains(sydney.BingAllowedFileExtensions, ext) {
+		return "", errors.New("file extension " + ext + " is not allowed")
+	}
+	v, err := base64.StdEncoding.DecodeString(rawBase64)
+	if err != nil {
+		return "", err
+	}
+	f, err := os.CreateTemp("", "*."+ext)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	_, err = io.Copy(f, bytes.NewReader(v))
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(os.TempDir(), f.Name()), nil
 }
 
 type UploadSydneyDocumentResult struct {

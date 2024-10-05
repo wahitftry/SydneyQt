@@ -47,7 +47,7 @@ function deleteOpenaiBackend(backend: OpenAIBackend) {
     return
   }
   activeOpenaiBackendName.value = props.open_ai_backends[0].name
-  emit('update:open_ai_backends',props.open_ai_backends.filter(v => v !== backend))
+  emit('update:open_ai_backends', props.open_ai_backends.filter(v => v !== backend))
 }
 
 function checkOpenaiEndpoint(val: string) {
@@ -73,6 +73,18 @@ function onChangeOpenAIMaxTokens(val: string) {
     return
   }
   backend.max_tokens = i
+}
+
+function onChangeOpenAIShortModel(val: string) {
+  let backend = props.open_ai_backends.find(v => v.name === activeOpenaiBackendName.value)
+  if (!backend) {
+    return
+  }
+  let v = val.replaceAll(' ', '')
+  if (!v) {
+    v = 'gpt-4o-mini'
+  }
+  backend.openai_short_model = v
 }
 </script>
 
@@ -115,7 +127,9 @@ function onChangeOpenAIMaxTokens(val: string) {
             <v-text-field label="Endpoint" :rules="[checkOpenaiEndpoint]" v-model="backend.openai_endpoint"
                           color="primary"></v-text-field>
             <v-text-field label="Key" v-model="backend.openai_key" color="primary"></v-text-field>
-            <v-text-field label="Model" v-model="backend.openai_short_model" color="primary"></v-text-field>
+            <v-text-field label="Model List" @update:model-value="onChangeOpenAIShortModel"
+                          :model-value="backend.openai_short_model" color="primary"
+                          hint="Separated by comma(,)"></v-text-field>
             <v-slider label="Temperature" v-model="backend.openai_temperature" min="0" max="2"
                       step="0.1" color="primary" thumb-label="always"></v-slider>
             <v-slider label="Frequency Penalty" v-model="backend.frequency_penalty"

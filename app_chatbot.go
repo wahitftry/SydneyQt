@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sydneyqt/sydney"
 	"sydneyqt/util"
+	"time"
 )
 
 const (
@@ -31,6 +32,7 @@ type AskOptions struct {
 	Prompt         string  `json:"prompt"`
 	ImageURL       string  `json:"image_url"`
 	UploadFilePath string  `json:"upload_file_path"`
+	Model          string  `json:"model"` // for openai models
 }
 
 const (
@@ -215,17 +217,18 @@ func (a *App) askOpenAI(options AskOptions) {
 		ErrType: "",
 		ErrMsg:  "",
 	}
+	chatFinish := func() {
+		slog.Info("invoke EventChatFinish", "result", chatFinishResult)
+		runtime.EventsEmit(a.ctx, EventChatFinish, chatFinishResult)
+	}
 	handleErr := func(err error) {
 		chatFinishResult = ChatFinishResult{
 			Success: false,
 			ErrType: ChatFinishResultErrTypeOthers,
 			ErrMsg:  err.Error(),
 		}
+		chatFinish()
 	}
-	defer func() {
-		slog.Info("invoke EventChatFinish", "result", chatFinishResult)
-		runtime.EventsEmit(a.ctx, EventChatFinish, chatFinishResult)
-	}()
 	stopCtx, cancel := context.WithCancel(context.Background())
 	runtime.EventsOn(a.ctx, EventChatStop, func(optionalData ...interface{}) {
 		slog.Info("Received EventChatStop")
@@ -266,8 +269,17 @@ func (a *App) askOpenAI(options AskOptions) {
 			}},
 		})
 	}
+	models := strings.Split(backend.OpenaiShortModel, ",")
+	if options.Model == "" {
+		options.Model = models[0]
+	}
+	if !slices.Contains(models, options.Model) {
+		handleErr(errors.New("model " + options.Model + " is not in the model list of the corresponding backend"))
+		return
+	}
+	slog.Info("Ask OpenAI with model: " + options.Model)
 	stream, err := client.CreateChatCompletionStream(stopCtx, openai.ChatCompletionRequest{
-		Model:            backend.OpenaiShortModel,
+		Model:            options.Model,
 		Messages:         messages,
 		Temperature:      backend.OpenaiTemperature,
 		FrequencyPenalty: backend.FrequencyPenalty,
@@ -278,11 +290,36 @@ func (a *App) askOpenAI(options AskOptions) {
 		handleErr(err)
 		return
 	}
-	runtime.EventsEmit(a.ctx, EventConversationCreated)
 	defer stream.Close()
-	fullMessage := ""
+	runtime.EventsEmit(a.ctx, EventConversationCreated)
+	chatAppendBuffChan := make(chan string, 128)
+	defer close(chatAppendBuffChan)
+	fullMessage := bytes.Buffer{}
 	replied := false
+	go func() {
+		lastFlushTime := time.Now()
+		textBuf := bytes.Buffer{}
+		flush := func() {
+			runtime.EventsEmit(a.ctx, EventChatAppend, textBuf.String())
+			runtime.EventsEmit(a.ctx, EventChatToken, a.CountToken(fullMessage.String()))
+			lastFlushTime = time.Now()
+			textBuf.Reset()
+		}
+		for text := range chatAppendBuffChan {
+			textBuf.WriteString(text)
+			if time.Since(lastFlushTime) >= 200*time.Millisecond {
+				flush()
+			}
+		}
+		flush()
+		chatFinish()
+	}()
 	for {
+		select {
+		case <-stopCtx.Done():
+			return
+		default:
+		}
 		response, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
 			slog.Info("openai chat completed")
@@ -300,13 +337,12 @@ func (a *App) askOpenAI(options AskOptions) {
 			continue
 		}
 		textToAppend := response.Choices[0].Delta.Content
-		fullMessage += textToAppend
-		runtime.EventsEmit(a.ctx, EventChatToken, a.CountToken(fullMessage))
+		fullMessage.WriteString(textToAppend)
 		if !replied {
 			textToAppend = "[assistant](#message)\n" + textToAppend
 			replied = true
 		}
-		runtime.EventsEmit(a.ctx, EventChatAppend, textToAppend)
+		chatAppendBuffChan <- textToAppend
 	}
 }
 func (a *App) AskAI(options AskOptions) {

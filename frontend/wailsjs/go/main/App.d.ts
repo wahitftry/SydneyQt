@@ -32,6 +32,8 @@ export function SaveRemoteFile(arg1:string,arg2:string,arg3:string):Promise<void
 
 export function SaveRemoteJPEGImage(arg1:string):Promise<void>;
 
+export function SaveTempFileToUploadFromBase64(arg1:string,arg2:string):Promise<string>;
+
 export function SelectUploadFile():Promise<string>;
 
 export function ShareWorkspace(arg1:number):Promise<void>;
@@ -39,3 +41,5 @@ export function ShareWorkspace(arg1:number):Promise<void>;
 export function UploadDocument():Promise<main.UploadSydneyDocumentResult>;
 
 export function UploadSydneyImage():Promise<main.UploadSydneyImageResult>;
+
+export function UploadSydneyImageFromBase64(arg1:string):Promise<main.UploadSydneyImageResult>;

@@ -2,8 +2,16 @@
 import {computed, onMounted, onUnmounted, ref, watch} from "vue"
 import {main, sydney} from "../../wailsjs/go/models"
 import {EventsEmit, EventsOff, EventsOn} from "../../wailsjs/runtime"
-import {fromChatMessages, generateRandomName, shadeColor, swal, toChatMessages} from "../helper"
-import {AskAI, CountToken, GenerateImage, GenerateMusic, GetConciseAnswer} from "../../wailsjs/go/main/App"
+import {fileToBase64URL, fromChatMessages, generateRandomName, shadeColor, swal, toChatMessages} from "../helper"
+import {
+  AskAI,
+  CountToken,
+  GenerateImage,
+  GenerateMusic,
+  GetConciseAnswer,
+  SaveTempFileToUploadFromBase64,
+  UploadSydneyImageFromBase64
+} from "../../wailsjs/go/main/App"
 import {AskTypeOpenAI, AskTypeSydney} from "../constants"
 import Scaffold from "../components/Scaffold.vue"
 import {useSettings} from "../composables"
@@ -51,6 +59,7 @@ let currentWorkspace = ref(<Workspace>{
   use_classic: false,
   gpt_4_turbo: false,
   persistent_input: false,
+  model: '',
 })
 
 let chatContextTokenCount = ref(0)
@@ -60,6 +69,12 @@ watch(currentWorkspace, async () => {
   chatContextTokenCount.value = await CountToken(currentWorkspace.value.context)
   userInputTokenCount.value = await CountToken(currentWorkspace.value.input)
   config.value.current_workspace_id = currentWorkspace.value.id
+  if (!currentWorkspace.value.model && currentWorkspace.value.backend !== 'Sydney') {
+    let backend = config.value.open_ai_backends.find(v => v.name === currentWorkspace.value.backend)
+    if (backend) {
+      currentWorkspace.value.model = backend.openai_short_model.split(',')[0]
+    }
+  }
 }, {deep: true})
 let statusTokenCountText = computed(() => {
   return 'Chat Context: ' + chatContextTokenCount.value + ' tokens; User Input: ' + userInputTokenCount.value + ' tokens'
@@ -264,6 +279,7 @@ async function startAsking(args: StartAskingArgs = {}) {
   askOptions.openai_backend = currentWorkspace.value.backend
   askOptions.image_url = uploadedImage.value?.bing_url ?? ''
   askOptions.upload_file_path = selectedUploadFile.value ?? ''
+  askOptions.model = currentWorkspace.value.model ?? ''
   await AskAI(askOptions)
 }
 
@@ -276,6 +292,37 @@ function applyQuickResponse(text: string) {
     currentWorkspace.value.input += '\n'
   }
   currentWorkspace.value.input += text
+}
+
+let imageUploadButtonLoading = ref(false)
+
+async function pasteToUserInput(event: ClipboardEvent) {
+  let file = event.clipboardData?.files?.[0]
+  if (!file) {
+    return
+  }
+  let url = await fileToBase64URL(file)
+  let rawBase64 = /base64,(.*)/.exec(url)?.[1] ?? ''
+  if (!rawBase64) {
+    return
+  }
+  let ext = file.name.split('.')[file.name.split('.').length - 1]
+  if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) {
+    imageUploadButtonLoading.value = true
+    UploadSydneyImageFromBase64(rawBase64).then(res => {
+      uploadedImage.value = res
+    }).catch(err => {
+      swal.error(err)
+    }).finally(() => {
+      imageUploadButtonLoading.value = false
+    })
+  } else {
+    SaveTempFileToUploadFromBase64(ext, rawBase64).then(res => {
+      selectedUploadFile.value = res
+    }).catch(err => {
+      swal.error(err)
+    })
+  }
 }
 
 function stopAsking() {
@@ -446,12 +493,13 @@ function generateTitle() {
       </v-btn>
     </template>
     <template #right-top-prepend>
-      <user-status-button></user-status-button>
+      <user-status-button v-if="!config.hide_user_status_button"></user-status-button>
     </template>
     <template #default>
       <workspace-nav v-if="!loading" :is-asking="isAsking" v-model="navDrawer"
                      v-model:current-workspace="currentWorkspace"
                      v-model:workspaces="config.workspaces" :presets="config.presets" @on-reset="onReset"
+                     :open_ai_backends="config.open_ai_backends"
                      @update:suggested-responses="arr => suggestedResponses=arr"
                      @scroll-chat-context-to-bottom="scrollChatContextToBottom"></workspace-nav>
       <div class="d-flex flex-column fill-height" v-if="!loading">
@@ -462,9 +510,13 @@ function generateTitle() {
             <v-select v-model="currentWorkspace.backend" :items="backendList" color="primary" label="Backend"
                       density="compact"
                       class="mx-2"></v-select>
-            <v-select v-model="currentWorkspace.conversation_style" :disabled="currentWorkspace.backend!=='Sydney'"
+            <v-select v-model="currentWorkspace.conversation_style" v-if="currentWorkspace.backend==='Sydney'"
                       :items="modeList" color="primary" label="Mode"
                       density="compact"
+                      class="mx-2"></v-select>
+            <v-select v-model="currentWorkspace.model" v-else
+                      :items="config.open_ai_backends.find(v=>v.name===currentWorkspace.backend)?.openai_short_model.split(',') ?? []"
+                      color="primary" label="Model" density="compact"
                       class="mx-2"></v-select>
             <v-select :model-value="currentWorkspace.preset" @update:model-value="onPresetChange"
                       :items="config.presets.map(v=>v.name)" color="primary"
@@ -615,7 +667,8 @@ function generateTitle() {
         <div class="my-1 d-flex">
           <p class="font-weight-bold">Follow-up User Input:</p>
           <v-spacer></v-spacer>
-          <upload-panel-button :is-asking="isAsking" v-model="uploadedImage" type="image"></upload-panel-button>
+          <upload-panel-button :loading="imageUploadButtonLoading" :is-asking="isAsking" v-model="uploadedImage"
+                               type="image"></upload-panel-button>
           <upload-panel-button :is-asking="isAsking" v-model="selectedUploadFile" type="file"></upload-panel-button>
           <upload-document-button :is-asking="isAsking"
                                   @append-block-to-current-workspace="appendBlockToCurrentWorkspace"
@@ -657,7 +710,7 @@ function generateTitle() {
         </div>
         <div :style="{height:config.stretch_factor+'vh'}" class="flex-shrink-0">
           <textarea :style="customFontStyle" id="user-input" class="input-textarea"
-                    v-model="currentWorkspace.input"></textarea>
+                    v-model="currentWorkspace.input" @paste="pasteToUserInput"></textarea>
         </div>
         <div class="d-flex text-caption">
           <p class="overflow-hidden text-no-wrap">{{ statusBarText }}</p>

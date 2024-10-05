@@ -7,6 +7,7 @@ export namespace main {
 	    prompt: string;
 	    image_url: string;
 	    upload_file_path: string;
+	    model: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new AskOptions(source);
@@ -20,6 +21,7 @@ export namespace main {
 	        this.prompt = source["prompt"];
 	        this.image_url = source["image_url"];
 	        this.upload_file_path = source["upload_file_path"];
+	        this.model = source["model"];
 	    }
 	}
 	export class ChatFinishResult {
@@ -155,6 +157,7 @@ export namespace main {
 	    persistent_input: boolean;
 	    plugins: string[];
 	    data_references: DataReference[];
+	    model: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Workspace(source);
@@ -177,13 +180,14 @@ export namespace main {
 	        this.persistent_input = source["persistent_input"];
 	        this.plugins = source["plugins"];
 	        this.data_references = this.convertValues(source["data_references"], DataReference);
+	        this.model = source["model"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
 		    }
-		    if (a.slice) {
+		    if (a.slice && a.map) {
 		        return (a as any[]).map(elem => this.convertValues(elem, classs));
 		    } else if ("object" === typeof a) {
 		        if (asMap) {
@@ -236,6 +240,7 @@ export namespace main {
 	    disable_no_search_loader: boolean;
 	    bypass_server: string;
 	    disable_summary_title_generation: boolean;
+	    hide_user_status_button: boolean;
 	    migration: Migration;
 	
 	    static createFrom(source: any = {}) {
@@ -268,6 +273,7 @@ export namespace main {
 	        this.disable_no_search_loader = source["disable_no_search_loader"];
 	        this.bypass_server = source["bypass_server"];
 	        this.disable_summary_title_generation = source["disable_summary_title_generation"];
+	        this.hide_user_status_button = source["hide_user_status_button"];
 	        this.migration = this.convertValues(source["migration"], Migration);
 	    }
 	
@@ -275,7 +281,7 @@ export namespace main {
 		    if (!a) {
 		        return a;
 		    }
-		    if (a.slice) {
+		    if (a.slice && a.map) {
 		        return (a as any[]).map(elem => this.convertValues(elem, classs));
 		    } else if ("object" === typeof a) {
 		        if (asMap) {
@@ -366,7 +372,7 @@ export namespace main {
 		    if (!a) {
 		        return a;
 		    }
-		    if (a.slice) {
+		    if (a.slice && a.map) {
 		        return (a as any[]).map(elem => this.convertValues(elem, classs));
 		    } else if ("object" === typeof a) {
 		        if (asMap) {
